@@ -1,33 +1,20 @@
-;;  ------------------------------------------------------------------------
-;; |   FILE           :  utilities.rkt                                      |
-;; |   AUTHOR         :  Eugene Wallingford                                 |
-;; |   CREATION DATE  :  2024/03/26                                         |
-;; |   DESCRIPTION    :  This file contains basic utility functions for     |
-;; |                     use in other files.                                |
-;;  ------------------------------------------------------------------------
-
 #lang racket
-(provide list-of? every?)
 
-;; -------------------------------------------------------------------------
-;; (list-of? n) returns a predicate for n-item lists
-;; -------------------------------------------------------------------------
 
-(define list-of?
-  (lambda (n)
-    (lambda (obj)
-      (and (list? obj)
-           (eq? n (length obj))))))
+(provide (all-defined-out))   ; exports every function defined in the file
 
-;; -------------------------------------------------------------------------
-;; every? is a predicate that verifies each item in lst passes test?
-;; -------------------------------------------------------------------------
+(define member? ;;Like member, but returns #t if found and #f otherwise
+  (lambda (list-of item)
+    (if (member item list-of)
+        #t
+        #f)))
 
-(define every?
-  (lambda (test? lst)
-    (or (null? lst)
-        (and (test? (car lst))
-             (every? test? (cdr lst))))))
+(define byte-check
+  (lambda (exp)
+    (if (byte? exp)
+        exp
+        (if (> exp 255)
+            255
+            0))))
 
-;; ----- END OF FILE -------------------------------------------------------
-
+;;number? is already in Racket
