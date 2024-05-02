@@ -1,14 +1,3 @@
-;;
-;; FILE:     utilities.rkt
-;; AUTHOR:   Tanner Raine
-;; DATE:     2024/04/23
-;; COMMENT:  useful functions for everything :-0
-;;           
-;;
-;; MODIFIED: N/A
-;; CHANGE:  N/A
-;;
-
 #lang racket
 (provide list-of? member?)
 

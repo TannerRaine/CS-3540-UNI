@@ -1,0 +1,44 @@
+#lang racket
+
+(require "utilities.rkt")
+(provide (all-defined-out))
+
+
+;----------------BINDINGS---------------------------------------
+;;Problem 1
+
+;; (define make-bindings list)
+;; 
+;; (define bind
+;;   (lambda (name val los)
+;;     (if (null? los)
+;;         (list (cons name val))
+;;         (list (cons name val) (rest los)))))
+;; 
+;; (define var-exists?
+;;   (lambda (name los) ;los = list of stuff
+;;     (if (assoc name los)
+;;         #t
+;;         #f)))
+;; 
+;; (define look-up
+;;   (lambda (name los)
+;;     (cond
+;;       [(var-exists? name los) (cdr (assoc name los))]
+;;       [else (error "environment: undefined variable --" name)])))
+
+(define (make-bindings)
+  '())
+
+(define bind
+  (lambda (name val list)
+    (cons (cons name val) list)))
+
+(define (look-up name env)
+  (let ((binding (assoc name env)))
+    (if binding
+        (cdr binding)
+        (error "environment: undefined variable --" name))))
+
+(define (var-exists? name env)
+  (not (null? (assoc name env))))

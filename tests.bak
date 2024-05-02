@@ -1,14 +1,3 @@
-;;
-;; FILE:     tests.rkt
-;; AUTHOR:   Tanner Raine
-;; DATE:     2024/04/23
-;; COMMENT:  Tests for interpreter.rkt, syntax-procs.rkt, datatypes.rkt & utilities.rkt
-;;           
-;;
-;; MODIFIED: 2024/04/23 by Tanner Raine
-;; CHANGE:   Added test cases for color/in?
-;;
-
 #lang racket
 
 (require rackunit)
@@ -102,22 +91,3 @@
 
 ;; ------------------------------------------------------------------------
 
-;; ------------------------------------------------------------------------
-;; Color/in
-;; ------------------------------------------------------------------------
-
-(check-equal? (eval-exp 'white)
-'(rgb 255 255 255))
-
-(check-equal? (eval-exp '(color red = (rgb 255 0 0) in
-                (darker red)))
-              '(rgb 127 0 0))
-
-(check-equal? (eval-exp '(color red = (rgb 255 0 0) in
-                (color pink = (white mix red) in
-                  (darker pink))))
-'(rgb 127 63 63))
-
-
-
-;; ------------------------------------------------------------------------

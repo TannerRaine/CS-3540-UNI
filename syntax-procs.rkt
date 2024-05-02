@@ -1,232 +1,235 @@
+;;
+;; FILE:     syntax-procs.rkt
+;; AUTHOR:   Tanner Raine
+;; DATE:     2024/04/23
+;; COMMENT:  Uses Huey to demonstrate I can code :-)
+;;           
+;;
+;; MODIFIED: 2024/04/23 by Tanner Raine
+;; CHANGE:   Modified color/in?
+;;
+
 #lang racket
 
 (require "utilities.rkt")
-(provide (all-defined-out))
-#| 
-       <color> ::= (rgb <byte> <byte> <byte> )
-                 | ( <unary-op> <color> )
-                 | ( <color> <2color-op> <color> )
-                 | ( <color> <1color-op> <number> )
+(provide (all-defined-out))     ; should *not* provide helpers
 
-                 <unary-op> ::= invert | darker
-                 <2color-op> ::= + | - | mix
-                 <1color-op> ::= * | shift                 |# ;;Syntax
+;; ------------------------------------------------------------------------
+;; This code works with the HW 9 version of the Huey grammar:
+;;
+;;           <color> ::= (rgb <byte> <byte> <byte> )
+;;                     | ( <unary-op> <color> )
+;;                     | ( <color> <2color-op> <color> )
+;;                     | ( <color> <1color-op> <number> )
+;;
+;;        <unary-op> ::= invert | darker
+;;       <2color-op> ::= + | - | mix
+;;       <1color-op> ::= * | shift
+;;
+;; The operations in Huey are adapted from
+;;     http://vanseodesign.com/css/sass-colors-part-1/
+;; which describes how colors are processed in SASS.
+;; ------------------------------------------------------------------------
 
-;----------------GENERAL TYPE PREDICATE---------------------------------------
+;; ------------------------------------------------------------------------
+;; operators
+;; ------------------------------------------------------------------------
 
+(define *unary-ops-core*   '(invert))
+(define *unary-ops-sugar*  '(darker))
+(define *2color-ops-core*  '(+ -))
+(define *2color-ops-sugar* '(mix))
+(define *1color-ops-core*  '(* shift))
+(define *1color-ops-sugar* '())
 
-(define color? ;general type predicate
-  (lambda (exp)
-    (or (rgb?          exp)
-        (mix?          exp)
-        (2color-op?    exp)
-        (1color-op?    exp)
-        (darker?       exp)
-        (unary-op?     exp)
-        )))
+(define unary-op?
+  (lambda (x)
+    (and (symbol? x)
+         (or (member? x *unary-ops-core*)
+             (member? x *unary-ops-sugar*)))))
 
+(define unary-op-core?
+  (lambda (x)
+    (and (symbol? x)
+         (member? x *unary-ops-core*))))
 
-;----------------MIX---------------------------------------
-;; (color1 mix color2)
-;;((color1 * 0.5) + (color2 * 0.5))
+(define 2color-op?
+  (lambda (x)
+    (and (symbol? x)
+         (or (member? x *2color-ops-core*)
+             (member? x *2color-ops-sugar*)))))
 
+(define 2color-op-core?
+  (lambda (x)
+    (and (symbol? x)
+         (member? x *2color-ops-core*))))
 
-(define mix? ;type predicate (AFTER PRE-PROCESS)
-  (lambda (item)
-    (and
-     (= (length item) 3)
-     (color? (first item))
-     (eq? 'mix (second item))
-     (color? (third item)))))
+(define 1color-op?
+  (lambda (x)
+    (and (symbol? x)
+         (or (member? x *1color-ops-core*)
+             (member? x *1color-ops-sugar*)))))
 
+(define 1color-op-core?
+  (lambda (x)
+    (and (symbol? x)
+         (member? x *1color-ops-core*))))
 
+;; ------------------------------------------------------------------------
+;; general type predicate
+;; ------------------------------------------------------------------------
 
+(define color?
+  (lambda (x)
+    (or (rgb? x)
+        (unary-exp?  x)
+        (2color-exp? x)
+        (1color-exp? x)
+        (color/in?   x)
+        (varref?     x)
+        (color/in?   x))))
 
-;----------------DARKER---------------------------------------
-;(color * 0.5)
+;; ------------------------------------------------------------------------
+;; RGB values -- the base values of Huey
+;; ------------------------------------------------------------------------
 
+;;(rgb <byte> <byte> <byte> )
 
-(define darker? ;type predicate (AFTER PRE-PROCESS)
-  (lambda (item)
-    (let ( (list-of-symbols '(*)))
-    (and
-     (darker-test item)
-     (color? (first item))
-     (member? list-of-symbols (second item))
-     (eq? (third item) 0.5)
-     ))))
+(define rgb?
+  (lambda (x)
+    (and ((list-of? 4) x)
+         (eq? 'rgb (first x))
+         (byte? (second x))
+         (byte? (third x))
+         (byte? (fourth x)))))
 
-(define darker-test
-  (lambda (item)
-     (= (length item) 3)))
+(define rgb
+  (lambda args
+    (cond ((not ((list-of? 3) args))
+             (error 'rgb "requires list of size 3 ~a" args))
+          ((not ((list-of? number?) args))
+             (error 'rgb "requires list of number? ~a" args))
+          (else
+             (cons 'rgb (map coerce-byte args))))))
 
-(define darker-color ;accessor
-  (lambda (item)
-    (first item)))
+(define r second)
+(define g third)
+(define b fourth)
 
-(define darker-cons ;constructor
-  (lambda (color)
-    (list color '* '0.5)))
-    
+(define coerce-byte
+  (lambda (n)
+    (cond ((> n 255) 255)
+          ((< n 0)     0)
+          (else (inexact->exact (truncate n))))))
 
-;----------------UNARY-OP---------------------------------------
-;( <unary-op> <color> )
+;; ------------------------------------------------------------------------
+;; unary expressions
+;; ------------------------------------------------------------------------
 
+;;( <unary-op> <color> )
 
-(define unary-op? ;predicate
-  (lambda (item)
-    (let ( (list-of-unary '(invert darker)) )
-    (and
-     (or
-      (member? list-of-unary (first item))
-      (darker? item))
-     (color? (second item))
-     ))))
+(define unary-exp?
+  (lambda (x)
+    (and ((list-of? 2) x)
+         (unary-op? (first x))
+         (color?    (second x)))))
 
-(define unary-op-symbol ;accessor operation
-  (lambda (item)
-    (first item)))
-
-(define unary-op-color ;accessor color
-  (lambda (item)
-    (second item)))
-
-(define unary-op-cons ;constructor
+(define unary-exp
   (lambda (op color)
     (list op color)))
 
+(define unary->op  first)
+(define unary->arg second)
 
-;----------------RGB---------------------------------------
-;(rgb <byte> <byte> <byte> )
+;; ------------------------------------------------------------------------
+;; 2-color expressions
+;; ------------------------------------------------------------------------
 
-(define rgb? ;type predicate
-  (lambda (item)
-    (if (eq? 'rgb (first item)) ;RGB
-        (and (andmap number? (rest item)) ;Numbers
-             (andmap byte? (rest item)) ;Bytes
-             (eq? 3 (length (rest item)))) ;Correct amnt of nums
-    #f)))
+;;( <color> <2color-op> <color> )
 
-(define color-byte1 ;accessor color byte 1
-  (lambda (item)
-    (second item)))
+(define 2color-exp?
+  (lambda (x)
+    (and ((list-of? 3) x)
+         (color?     (first x))
+         (2color-op? (second x))
+         (color?     (third x)))))
 
-(define color-byte2 ;accessor color byte 2
-  (lambda (item)
-    (third item)))
+(define 2color-exp
+  (lambda (op color1 color2)
+    (list color1 op color2)))
 
-(define color-byte3 ;accessor color byte 3
-  (lambda (item)
-    (fourth item)))
+(define 2color->op    second)
+(define 2color->left  first)
+(define 2color->right third)
 
-(define color-cons ;constructor
-  (lambda (byte1 byte2 byte3)
-    (list 'rgb byte1 byte2 byte3)))
-    
+;; ------------------------------------------------------------------------
+;; 1-color expressions
+;; ------------------------------------------------------------------------
 
+;;( <color> <1color-op> <number> )
 
-;----------------2COLOR-OP---------------------------------------
-;| ( <color> <2color-op> <color> )
+(define 1color-exp?
+  (lambda (x)
+    (and ((list-of? 3) x)
+         (color?     (first x))
+         (1color-op? (second x))
+         (number?    (third x)))))
 
-(define 2color-op? ;type predicate
-  (lambda (item)
-    (let ( (list-of-symbols '(+ - mix)) )
-      (and
-       (2color-op-helper item)
-       (color? (first item))
-       (member? list-of-symbols (2color-op-symbol item))
-       (color? (third item))
-       ))))
+(define 1color-exp
+  (lambda (op color number)
+    (list color op number)))
 
-(define 2color-op-helper
-  (lambda (item)
-    (= (length item) 3)))
+(define 1color->op    second)
+(define 1color->left  first)
+(define 1color->right third)
 
-(define 2color-op-color1 ;accessor color 1
-  (lambda (item)
-    (first item)))
+;; ------------------------------------------------------------------------
 
-(define 2color-op-symbol ;accessor symbol
-  (lambda (item)
-    (second item)))
+;; ------------------------------------------------------------------------
+;; Color/in expressions
+;; ------------------------------------------------------------------------
 
-(define 2color-op-color2 ;accessor color 2
-  (lambda (item)
-    (third item)))
+;;( color <var> = <color> in <color> )
 
-(define 2color-op-cons ;constructor
-  (lambda (color 2color-op color2)
-    (cons color (list 2color-op color2))))
-
-
-;----------------1COLOR-OP---------------------------------------
-;| ( <color> <1color-op> <number> )
-
-(define 1color-op? ;predicate
-  (lambda (item)
-    (let ( (list-of-symbols '(* shift)) )
-      (and
-       (1color-op-helper item)
-       (color? (first item))
-       (member? list-of-symbols (second item))
-       (number? (third item))
-       ))))
-
-(define 1color-op-helper
+(define color/in? ;;type predicate
   (lambda (exp)
-    (= (length exp) 3)))
-
-(define 1color-op-cons ;constructor
-  (lambda (color color-op number)
-    (cons color (list color-op number))))
-
-(define 1color-op-color ;accessor color
-  (lambda (item)
-    (first item)))
-
-(define 1color-op-symbol ;accessor symbol
-  (lambda (item)
-    (second item)))
-
-(define 1color-op-number ;accessor number
-  (lambda (item)
-    (third item)))
-
-;----------------PRE-PROCESS---------------------------------------
-;; (color1 mix color2)
-;; ... which is a syntactic abstraction of ((color1 * 0.5) + (color2 * 0.5))
-;; (darker color)
-;; ... which is a syntactic abstraction of (color * 0.5)
-
-
-(define preprocess
-  (lambda (sugared-exp)
     (cond
-      [(mix-pre sugared-exp) (let ( (color1 (first sugared-exp)) (mix (second sugared-exp)) (color2 (third sugared-exp)))
-                               (list (list (preprocess color1) '* '0.5) '+ (list (preprocess color2) '* '0.5) ))]
-      [(darker-pre sugared-exp) (let ((color (second sugared-exp)))
-                                  (list (preprocess color) '* '0.5))]
-
-      [(color? sugared-exp) (cond
-                              [(rgb? sugared-exp) sugared-exp]
-                              [(unary-op? sugared-exp) (list (first sugared-exp) (preprocess (rest sugared-exp)))]
-                              [(2color-op? sugared-exp) (list (preprocess (first sugared-exp)) (second sugared-exp) (preprocess (third sugared-exp)))]
-                              [(1color-op? sugared-exp) (list (preprocess (first sugared-exp)) (second sugared-exp) (third sugared-exp))])
-                            ]
-
-      [else error "This doesn't work."])))
       
-(define mix-pre ;checks if mix prior to sugar removed
-  (lambda (item)
-    (and
-     (= (length item) 3)
-     (color? (first item))
-     (color? (third item))
-     (eq? 'mix (second item)))))
+    [(and
+     (list? exp)
+     ((list-of? 6) exp)
+     (varref? (color/in-var exp))
+     (color? (color/in-color1 exp))
+     (color? (color/in-color2 exp))
+     (equal? (color/in-in exp) 'in)
+     (equal? (color/in-= exp) '=))]
+    [else #f])))
 
-(define darker-pre
-  (lambda (item)
-    (and
-     (= (length item) 2)
-     (eq? 'darker (first item))
-     (color? (second item)))))
+(define color/in-exp ;;constructor
+  (lambda (var color1 color2)
+    (list 'color var '= color1 'in color2)))
+
+
+;;accessors
+(define color/in-var second)
+(define color/in-color1 fourth)
+(define color/in-color2 sixth)
+(define color/in-in fifth)
+(define color/in-= third)
+;; ------------------------------------------------------------------------
+
+;; ------------------------------------------------------------------------
+;; Varref expressions
+;; ------------------------------------------------------------------------
+
+;;<varref>
+
+(define keywords '(rgb color = in))
+
+(define varref?
+  (lambda (exp)
+    (if (symbol? exp)
+        (if (not (member? exp keywords))
+            #t
+            #f)
+        #f)))

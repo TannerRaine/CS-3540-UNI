@@ -1,18 +1,6 @@
-;;
-;; FILE:     interpreter.rkt
-;; AUTHOR:   Tanner Raine
-;; DATE:     2024/04/23
-;; COMMENT:  Uses accumulator passing style to demonstrate
-;;           efficient function calls.
-;;
-;; MODIFIED: 2024/04/23 by Tanner Raine
-;; CHANGE:   Fixed run-huey for base case
-;;
-
 #lang racket
 
 (require "syntax-procs.rkt")
-(require "datatypes.rkt")
 (provide preprocess eval-exp)
 
 ;; --------------------------------------------------------------------------
@@ -26,24 +14,14 @@
           ((unary-exp? exp)
               (preprocess-unary (unary->op exp)
                                 (preprocess (unary->arg exp))))
-          
           ((2color-exp? exp)
               (preprocess-2color (2color->op exp)
                                  (preprocess (2color->left exp))
                                  (preprocess (2color->right exp))))
-          
           ((1color-exp? exp)
               (preprocess-1color (1color->op exp)
                                  (preprocess (1color->left exp))
                                  (1color->right exp)))
-
-          [(color/in? exp)
-              (preprocess-color/in (color/in-var exp)
-                                   (preprocess (color/in-color1 exp))
-                                   (preprocess (color/in-color2 exp)))]
-
-          ((varref? exp) exp)
-           
           (else
              (error 'preprocess "invalid argument ~a" exp)))))
 
@@ -73,10 +51,6 @@
   (lambda (op color number)
     (1color-exp op color number)))
 
-(define preprocess-color/in
-  (lambda (var color1 color2)
-    (color/in-exp var color1 color2)))
-
 ;; --------------------------------------------------------------------------
 ;; This function preprocesses and evaluates programs written in the full
 ;; Huey language.  If its argument is not a valid exp, it signals an error.
@@ -85,35 +59,23 @@
 (define eval-exp
   (lambda (exp)
     (if (color? exp)
-        (eval-core (preprocess exp) environment)
+        (eval-core (preprocess exp))
         (error 'huey "illegal expression -- ~a" exp))))
 
 (define eval-core
-  (lambda (exp env)
+  (lambda (exp)
     (cond ((rgb? exp) exp)
-
           ((unary-exp? exp)
               (eval-unary (unary->op exp)
-                          (eval-core (unary->arg exp) env)))
-
+                          (eval-core (unary->arg exp))))
           ((2color-exp? exp)
               (eval-2color (2color->op exp)
-                           (eval-core (2color->left exp) env)
-                           (eval-core (2color->right exp) env)))
-
+                           (eval-core (2color->left exp))
+                           (eval-core (2color->right exp))))
           ((1color-exp? exp)
               (eval-1color (1color->op exp)
-                           (eval-core (1color->left exp) env)
+                           (eval-core (1color->left exp))
                            (1color->right exp)))
-
-          [(color/in? exp)
-               (eval-color/in (color/in-var exp)
-                              (color/in-color1 exp)
-                              (color/in-color2 exp)
-                              env)]
-
-          [(varref? exp)
-              (eval-varref exp env)]
           (else
              (error 'eval-core "unreachable ~a" exp)))))
 
@@ -154,38 +116,5 @@
           (else
              (error 'eval-2color "unreachable -- bad op ~a" op)))))
 
-(define eval-varref
-  (lambda (exp env)
-    (look-up exp env)))
-
-(define eval-color/in
-  (lambda (var color1 color2 env)
-     (eval-core color2 (bind var (eval-core color1 env)  env))))
-
-
 ;; --------------------------------------------------------------------------
 
-(define environment
-  '((white rgb 255 255 255) (black rgb 0 0 0)))
-
-
-(define run-huey
-  (lambda ()
-    (display "-->")
-    (let ((input (read)))
-      (cond
-        [(color? input) (write-helper (eval-exp input))]
-        [else "Try Again!"])
-      (newline)
-      (run-huey))))
-
-(define write-helper
-  (lambda (exp)
-    (cond
-      [(rgb? exp)
-       (and
-       (display "R: ")   (write   (r exp))
-       (display "  G: ") (write   (g exp))
-       (display "  B: ") (write   (b exp)) )]
-
-      [else (write exp)])))

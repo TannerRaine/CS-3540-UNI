@@ -1,162 +1,165 @@
-;;  ------------------------------------------------------------------------
-;; |   FILE           :  syntax-procs.rkt                                   |
-;; |   AUTHOR         :  Eugene Wallingford                                 |
-;; |   CREATION DATE  :  2023/03/26                                         |
-;; |   DESCRIPTION    :  This file includes standard syntax procedures      |
-;; |                     for a little language consisting of variable       |
-;; |                     references, functions with multiple parameters,    |
-;; |                     function applications, and if expressions, and     |
-;; |                     local variables.                                   |
-;;  ------------------------------------------------------------------------
-;; |   AUTHOR         :  YOUR NAME HERE                                     |
-;; |   DATE           :  2023/xx/xx                                         |
-;; |   DESCRIPTION    :  DESCRIBE YOUR CHANGES FOR HOMEWORK 8               |
-;;  ------------------------------------------------------------------------
-
-;;  ------------------------------------------------------------------------
-;;   This code works with the following grammar:
-;;
-;;                       --------------------------- CORE FEATURES
-;;        <exp>      ::= <varref>
-;;                     | ( lambda <parameters> <exp> )
-;;                     | ( <exp> . <exp-list>)
-;;                     | ( if <exp> <exp> <exp> )
-;;                       --------------------------- ABSTRACTIONS
-;;                     | ( let (<var> <exp>) <exp> )
-;;                     | ( and <exp> <exp> )         -- new
-;;                     | ( or <exp> <exp> )          -- new
-;;
-;;      <parameters> ::= ()
-;;                     | ( <var> . <parameters> )
-;;
-;;        <exp-list> ::= ()
-;;                     | ( <exp> . <exp-list>)
-;; -------------------------------------------------------------------------
-
 #lang racket
+
 (require "utilities.rkt")
-(provide exp?
-         varref?   make-varref   varref->val
-         lambda?   make-lambda   lambda->params lambda->body
-         app?      make-app      app->proc      app->args
-         if?       make-if       if->test       if->then      if->else
-         let?      make-let      let->var       let->val      let->body)
+(provide (all-defined-out))     ; should *not* provide helpers
 
-;; -------------------------------------------------------------------------
+;; ------------------------------------------------------------------------
+;; This code works with the HW 9 version of the Huey grammar:
+;;
+;;           <color> ::= (rgb <byte> <byte> <byte> )
+;;                     | ( <unary-op> <color> )
+;;                     | ( <color> <2color-op> <color> )
+;;                     | ( <color> <1color-op> <number> )
+;;
+;;        <unary-op> ::= invert | darker
+;;       <2color-op> ::= + | - | mix
+;;       <1color-op> ::= * | shift
+;;
+;; The operations in Huey are adapted from
+;;     http://vanseodesign.com/css/sass-colors-part-1/
+;; which describes how colors are processed in SASS.
+;; ------------------------------------------------------------------------
+
+;; ------------------------------------------------------------------------
+;; operators
+;; ------------------------------------------------------------------------
+
+(define *unary-ops-core*   '(invert))
+(define *unary-ops-sugar*  '(darker))
+(define *2color-ops-core*  '(+ -))
+(define *2color-ops-sugar* '(mix))
+(define *1color-ops-core*  '(* shift))
+(define *1color-ops-sugar* '())
+
+(define unary-op?
+  (lambda (x)
+    (and (symbol? x)
+         (or (member? x *unary-ops-core*)
+             (member? x *unary-ops-sugar*)))))
+
+(define unary-op-core?
+  (lambda (x)
+    (and (symbol? x)
+         (member? x *unary-ops-core*))))
+
+(define 2color-op?
+  (lambda (x)
+    (and (symbol? x)
+         (or (member? x *2color-ops-core*)
+             (member? x *2color-ops-sugar*)))))
+
+(define 2color-op-core?
+  (lambda (x)
+    (and (symbol? x)
+         (member? x *2color-ops-core*))))
+
+(define 1color-op?
+  (lambda (x)
+    (and (symbol? x)
+         (or (member? x *1color-ops-core*)
+             (member? x *1color-ops-sugar*)))))
+
+(define 1color-op-core?
+  (lambda (x)
+    (and (symbol? x)
+         (member? x *1color-ops-core*))))
+
+;; ------------------------------------------------------------------------
 ;; general type predicate
-;; -------------------------------------------------------------------------
+;; ------------------------------------------------------------------------
 
-(define exp?
-  (lambda (exp)
-    (or (varref? exp)
-        (lambda? exp)
-        (app?    exp)
-        (if?     exp)
-        (let?    exp))))
+(define color?
+  (lambda (x)
+    (or (rgb? x)
+        (unary-exp? x)
+        (2color-exp? x)
+        (1color-exp? x))))
 
-;; -------------------------------------------------------------------------
-;; varrefs
-;; -------------------------------------------------------------------------
+;; ------------------------------------------------------------------------
+;; RGB values -- the base values of Huey
+;; ------------------------------------------------------------------------
 
-(define varref?
-  (lambda (s)
-    (and (symbol? s)
-         (not (keyword? s)))))
+(define rgb?
+  (lambda (x)
+    (and ((list-of? 4) x)
+         (eq? 'rgb (first x))
+         (byte? (second x))
+         (byte? (third x))
+         (byte? (fourth x)))))
 
-(define make-varref identity)
-(define varref->val identity)
+(define rgb
+  (lambda args
+    (cond ((not ((list-of? 3) args))
+             (error 'rgb "requires list of size 3 ~a" args))
+          ((not ((list-of? number?) args))
+             (error 'rgb "requires list of number? ~a" args))
+          (else
+             (cons 'rgb (map coerce-byte args))))))
 
-(define keyword?
-  (lambda (s)
-    (member s '(lambda if let))))
+(define r second)
+(define g third)
+(define b fourth)
 
-;; -------------------------------------------------------------------------
-;; lambda expressions
-;; -------------------------------------------------------------------------
+(define coerce-byte
+  (lambda (n)
+    (cond ((> n 255) 255)
+          ((< n 0)     0)
+          (else (inexact->exact (truncate n))))))
 
-(define lambda?
-  (lambda (exp)
-    (and ((list-of? 3) exp)
-         (eq? 'lambda (first exp))
-         (list? (second exp))
-         (every? symbol? (second exp))
-         (exp? (third exp)))))
+;; ------------------------------------------------------------------------
+;; unary expressions
+;; ------------------------------------------------------------------------
 
-(define lambda->params second)
-(define lambda->body   third)
+(define unary-exp?
+  (lambda (x)
+    (and ((list-of? 2) x)
+         (unary-op? (first x))
+         (color?    (second x)))))
 
-(define make-lambda
-  (lambda (params body)
-    (list 'lambda params body)))
+(define unary-exp
+  (lambda (op color)
+    (list op color)))
 
-;; -------------------------------------------------------------------------
-;; application expressions  ("apps")
-;; -------------------------------------------------------------------------
+(define unary->op  first)
+(define unary->arg second)
 
-(define app?
-  (lambda (exp)
-    (and (list? exp)
-         (>= (length exp) 1)
-         (every? exp? exp))))
+;; ------------------------------------------------------------------------
+;; 2-color expressions
+;; ------------------------------------------------------------------------
 
-(define app->proc first)
-(define app->args rest)
+(define 2color-exp?
+  (lambda (x)
+    (and ((list-of? 3) x)
+         (color?     (first x))
+         (2color-op? (second x))
+         (color?     (third x)))))
 
-(define	make-app
-  (lambda (fxn args)
-    (cons fxn args)))
+(define 2color-exp
+  (lambda (op color1 color2)
+    (list color1 op color2)))
 
-;; -------------------------------------------------------------------------
-;; if expressions
-;; -------------------------------------------------------------------------
+(define 2color->op    second)
+(define 2color->left  first)
+(define 2color->right third)
 
-(define if?
-  (lambda (exp)
-    (and ((list-of? 4) exp)
-         (eq?  (first  exp) 'if)
-         (exp? (second exp))
-         (exp? (third  exp))
-         (exp? (fourth exp)))))
+;; ------------------------------------------------------------------------
+;; 1-color expressions
+;; ------------------------------------------------------------------------
 
-(define if->test second)
-(define if->then third)
-(define if->else fourth)
+(define 1color-exp?
+  (lambda (x)
+    (and ((list-of? 3) x)
+         (color?     (first x))
+         (1color-op? (second x))
+         (number?    (third x)))))
 
-(define	make-if
-  (lambda (test-exp then-exp else-exp)
-    (list 'if test-exp then-exp else-exp)))
+(define 1color-exp
+  (lambda (op color number)
+    (list color op number)))
 
-;; -------------------------------------------------------------------------
-;;  let expressions
-;; -------------------------------------------------------------------------
+(define 1color->op    second)
+(define 1color->left  first)
+(define 1color->right third)
 
-(define let?
-  (lambda (exp)
-    (and ((list-of? 3) exp)
-         (eq? 'let (first exp))
-         (binding? (second exp))
-         (exp? (third exp)))))
-
-(define binding?
-  (lambda (exp)
-    (and (list? exp)
-         (= (length exp) 2)
-         (varref? (first exp))
-         (exp? (second exp)))))
-
-(define let->var
-  (lambda (let-exp)
-    (first (second let-exp))))
-
-(define let->val
-  (lambda (let-exp)
-    (second (second let-exp))))
-
-(define let->body third)
-
-(define	make-let
-  (lambda (var val body)
-    (list 'let (list var val) body)))
-
-;; ----- END OF FILE -------------------------------------------------------
+;; ------------------------------------------------------------------------
 
