@@ -8,9 +8,9 @@
 ;; |                     function applications, and if expressions, and     |
 ;; |                     local variables.                                   |
 ;;  ------------------------------------------------------------------------
-;; |   AUTHOR         :  Tanner Raine                                       |
-;; |   DATE           :  2024/03/26                                         |
-;; |   DESCRIPTION    :  added keywords              |
+;; |   AUTHOR         :  YOUR NAME HERE                                     |
+;; |   DATE           :  2023/xx/xx                                         |
+;; |   DESCRIPTION    :  DESCRIBE YOUR CHANGES FOR HOMEWORK 8               |
 ;;  ------------------------------------------------------------------------
 
 ;;  ------------------------------------------------------------------------
@@ -40,9 +40,7 @@
          lambda?   make-lambda   lambda->params lambda->body
          app?      make-app      app->proc      app->args
          if?       make-if       if->test       if->then      if->else
-         let?      make-let      let->var       let->val      let->body
-         and?      make-and      and->arg1     and->arg2
-         or?       make-or       or->arg1      or->arg2)
+         let?      make-let      let->var       let->val      let->body)
 
 ;; -------------------------------------------------------------------------
 ;; general type predicate
@@ -54,10 +52,7 @@
         (lambda? exp)
         (app?    exp)
         (if?     exp)
-        (let?    exp)
-        (and?    exp)
-        (or?     exp)
-        )))
+        (let?    exp))))
 
 ;; -------------------------------------------------------------------------
 ;; varrefs
@@ -73,7 +68,7 @@
 
 (define keyword?
   (lambda (s)
-    (member s '(lambda if let and or))))
+    (member s '(lambda if let))))
 
 ;; -------------------------------------------------------------------------
 ;; lambda expressions
@@ -162,57 +157,6 @@
 (define	make-let
   (lambda (var val body)
     (list 'let (list var val) body)))
-
-;; -------------------------------------------------------------------------
-;;  and expressions
-;; -------------------------------------------------------------------------
-
-(define and? ;type predicate
-  (lambda (exp)
-    (and ((list-of? 3) exp)
-         (eq? 'and (first exp))
-         (exp? (and->arg1 exp))
-         (exp? (and->arg2 exp)))
-    ))
-
-(define and->arg1 ;accessor 1
-  (lambda (exp)
-    (second exp) ))
-
-(define and->arg2 ;accessor 2
-  (lambda (exp)
-    (third exp)) )
-
-(define make-and ;constructor
-  (lambda (exp1 exp2)
-    (list 'and exp1 exp2)))
-
-
-
-;; -------------------------------------------------------------------------
-;;  or expressions
-;; -------------------------------------------------------------------------
-
-(define or? ;type predicate
-  (lambda (exp)
-    (and ((list-of? 3) exp)
-         (eq? 'or (first exp))
-         (exp? (or->arg1 exp))
-         (exp? (or->arg2 exp)))
-    ))
-
-
-(define or->arg1 ;accessor 1
-  (lambda (exp)
-    (second exp) ))
-
-(define or->arg2 ;accessor 2
-  (lambda (exp)
-    (third exp) ))
-
-(define make-or ;constructor
-  (lambda (exp1 exp2)
-    (list 'or exp1 exp2)))
 
 ;; ----- END OF FILE -------------------------------------------------------
 
