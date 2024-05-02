@@ -1,0 +1,65 @@
+Welcome to DrRacket, version 8.11.1 [cs].
+Language: racket, with debugging; memory limit: 128 MB.
+> (define test '(5 4 (x) 2 1))
+> test
+'(5 4 (x) 2 1)
+> ;cool
+;glad-that-worked-or-else
+(rest test)
+'(4 (x) 2 1)
+> (first(rest(rest test)))
+'(x)
+> (rest(rest test))
+'((x) 2 1)
+> ;thats-weird
+(rest(first(rest(rest test))))
+'()
+> ;thats-weird
+(first(first(rest(rest test))))
+'x
+> (define test2 '(1 (2 (3) 4 5) (6 x 8)))
+> test2
+'(1 (2 (3) 4 5) (6 x 8))
+> ;first then 3 rest
+(first(rest(rest(rest test2))))
+. . first: contract violation
+  expected: (and/c list? (not/c empty?))
+  given: '()
+> (rest(rest(rest test2)))
+'()
+> (rest(rest test2))
+'((6 x 8))
+> (first(rest(rest test2)))
+'(6 x 8)
+> (first(first(rest(rest test2))))
+6
+> (first(rest(first(rest(rest test2)))))
+'x
+> ;LETS GO
+(define test3 '(((1 ((2)) ((x (3)) 5)))))
+
+> test3
+'(((1 ((2)) ((x (3)) 5))))
+> (rest(test3))
+. . application: not a procedure;
+ expected a procedure that can be applied to arguments
+  given: '(((1 ((2)) ((x (3)) 5))))
+> (rest test3)
+'()
+> (first test3)
+'((1 ((2)) ((x (3)) 5)))
+> (first(first(first test3)))
+1
+> (first(first test3))
+'(1 ((2)) ((x (3)) 5))
+> (rest(first(first test3)))
+'(((2)) ((x (3)) 5))
+> (first(rest(first(first test3))))
+'((2))
+> (rest(rest(first(first test3))))
+'(((x (3)) 5))
+> (first(first(rest(rest(first(first test3))))))
+'(x (3))
+> (first(first(first(rest(rest(first(first test3)))))))
+'x
+> 

@@ -1,0 +1,76 @@
+Welcome to DrRacket, version 8.11.1 [cs].
+Language: racket, with debugging; memory limit: 128 MB.
+> (first '(a b c d))
+'a
+> (first '(a (b c)d))
+'a
+> (rest(first '(a (b c)d)))
+. . rest: contract violation
+  expected: (and/c list? (not/c empty?))
+  given: 'a
+> (first(first '(a (b c)d)))
+. . first: contract violation
+  expected: (and/c list? (not/c empty?))
+  given: 'a
+> (define test '(a (b d) d))
+> test
+'(a (b d) d)
+> (first test)
+'a
+> (first rest test)
+. . first: arity mismatch;
+ the expected number of arguments does not match the given number
+  expected: 1
+  given: 2
+> (rest(rest test))
+'(d)
+> (rest(rest(rest test)))
+'()
+> (rest(rest(rest(rest test))))
+. . rest: contract violation
+  expected: (and/c list? (not/c empty?))
+  given: '()
+> test
+'(a (b d) d)
+> (define test '(a (b c) d))
+> test
+'(a (b c) d)
+> (first test)
+'a
+> (rest(rest test))
+'(d)
+> cls
+. . cls: undefined;
+ cannot reference an identifier before its definition
+> ;nevermind :f
+(first test)
+'a
+> (rest test)
+'((b c) d)
+> (first(rest test))
+'(b c)
+> (first(first(rest test)))
+'b
+> (rest(first(rest test)))
+'(c)
+> (rest(rest test))
+'(d)
+> (first test)
+'a
+> (first(first(rest test)))
+'b
+> (rest(first(rest test)))
+'(c)
+> (rest(rest test))
+'(d)
+> (first(rest(rest test)))
+'d
+> (first test)
+'a
+> (first(first(rest test)))
+'b
+> (first(rest(first(rest test))))
+'c
+> (first(rest(rest test)))
+'d
+> 

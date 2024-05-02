@@ -1,0 +1,49 @@
+Welcome to DrRacket, version 8.11.1 [cs].
+Language: racket, with debugging; memory limit: 128 MB.
+> (define big-number 1059430001)
+> (define small-number 0.002000015)
+> (define msu 'spartans)
+> (define number1 big-number)
+> (define number2 'big-number)
+> (define symbol1 msu)
+> (define symbol2 msu)
+> symbol2
+'spartans
+> symbol1
+'spartans
+> big-number
+1059430001
+> small-numbers
+. . small-numbers: undefined;
+ cannot reference an identifier before its definition
+> small-number
+0.002000015
+> msu
+'spartans
+> number1
+1059430001
+> number2
+'big-number
+> big-number
+1059430001
+> small-number
+0.002000015
+> 'big-number
+'big-number
+> msu
+'spartans
+> 'msu
+'msu
+> number1
+1059430001
+> number2
+'big-number
+> 'number1
+'number1
+> symbol1
+'spartans
+> symbol2
+'spartans
+> 'symbol2
+'symbol2
+> 

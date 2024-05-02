@@ -1,0 +1,11 @@
+Welcome to DrRacket, version 8.11.1 [cs].
+Language: racket, with debugging; memory limit: 128 MB.
+> (length '(5 4 (x) 2 1))
+5
+> (length '(1 (2 (3) 4 5) (6 x 8)))
+3
+> (length '(1 (2 (3) 4 5) (6 x 8)))
+3
+> (length '(((1 ((2)) ((x (3)) 5)))))
+1
+> 
