@@ -7,7 +7,7 @@
 ;;
 ;; MODIFIED: N/A
 ;; CHANGE:  N/A
-;;
+;;ALL WRITTEN CODE BELONGS TO EUGENE WALLINGFORD
 
 #lang racket
 (provide list-of? member?)

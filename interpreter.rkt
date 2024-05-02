@@ -7,7 +7,7 @@
 ;;
 ;; MODIFIED: 2024/04/23 by Tanner Raine
 ;; CHANGE:   Fixed run-huey for base case
-;;
+;; AUTHOR EUGENE WALLINGFORD FOR ALL, EXCEPT COLOR/IN EXPRESSIONS, DO, AND RUN-HUEY
 
 #lang racket
 
@@ -41,6 +41,13 @@
               (preprocess-color/in (color/in-var exp)
                                    (preprocess (color/in-color1 exp))
                                    (preprocess (color/in-color2 exp)))]
+
+          [(do? exp)
+           (if (>= (length exp) 3)
+               (preprocess-do-assign (map preprocess-assignment (do-assgn exp))
+                                     (preprocess (do-color exp)));;assignment statement
+               (preprocess-do (preprocess (do-color exp))))] ;;no assignment statement
+           
 
           ((varref? exp) exp)
            
@@ -77,6 +84,21 @@
   (lambda (var color1 color2)
     (color/in-exp var color1 color2)))
 
+
+;; <color> ::= ( do <assignment>* <color> )
+(define preprocess-do-assign ;;do w/ assignment
+  (lambda (assignment color)
+    (do-exp-assign assignment color)))
+
+(define preprocess-do ;;do w/o assignment
+  (lambda (color)
+    (do-exp color)))
+
+(define preprocess-assignment
+  (lambda (assignment)
+    (assgn-exp (assgn-varref assignment) (preprocess (assgn-color assignment) ))))
+      
+
 ;; --------------------------------------------------------------------------
 ;; This function preprocesses and evaluates programs written in the full
 ;; Huey language.  If its argument is not a valid exp, it signals an error.
@@ -111,6 +133,15 @@
                               (color/in-color1 exp)
                               (color/in-color2 exp)
                               env)]
+
+          [(do? exp)
+           (if (>= (length exp) 3)
+               (begin
+                (for ([item (do-assgn exp)])
+                  (eval-do-assignment item env))
+                  (eval-do (do-color exp) env))
+
+               (eval-do (do-color exp) exp))]
 
           [(varref? exp)
               (eval-varref exp env)]
@@ -156,17 +187,34 @@
 
 (define eval-varref
   (lambda (exp env)
-    (look-up exp env)))
+    (cell-value (look-up exp env))))
 
 (define eval-color/in
   (lambda (var color1 color2 env)
-     (eval-core color2 (bind var (eval-core color1 env)  env))))
+     (eval-core color2 (bind var (cell (eval-core color1 env))  env))))
 
+(define eval-do
+ (lambda (color env)
+   (eval-core color env )))
+
+(define eval-do-assignment
+  (lambda (assignment env)
+    (and (assgn-varref assignment)
+               (cell-set!
+                (look-up (assgn-varref assignment) env)
+                (eval-core (assgn-color assignment) env)))))
+                          
+;;<assignment> ::= ( <varref> <= <color> )
+;;( do <assignment>* <color> ) 
 
 ;; --------------------------------------------------------------------------
 
 (define environment
-  '((white rgb 255 255 255) (black rgb 0 0 0)))
+  (bind
+   'black (cell '(rgb 0 0 0))
+
+  (bind
+   'white (cell '(rgb 255 255 255)) '())))
 
 
 (define run-huey
@@ -189,3 +237,6 @@
        (display "  B: ") (write   (b exp)) )]
 
       [else (write exp)])))
+
+
+

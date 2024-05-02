@@ -8,6 +8,7 @@
 ;; MODIFIED: 2024/04/23 by Tanner Raine
 ;; CHANGE:   Fixed look-up calls
 ;;
+;; AUTHORS NOTE: ALL FUNCTIONS under Bindings all belong to Eugene Wallingford
 
 #lang racket
 
@@ -37,5 +38,21 @@
       [(assoc name env) #t]
       [else #f])))
 
-;; (define env
-;;   (bind 'white '(rgb 255 255 255) (bind 'black '(rgb 0 0 0) (make-bindings) )))
+
+
+;----------------CELL ADT---------------------------------------
+
+
+(define (cell initial-value)
+  (let ((value initial-value))
+    (cons
+      (lambda ()
+        value)
+      (lambda (new-value)
+        (set! value new-value)))))
+
+(define (cell-value cell)
+  ((car cell)))
+
+(define (cell-set! cell new-value)
+  ((cdr cell) new-value))

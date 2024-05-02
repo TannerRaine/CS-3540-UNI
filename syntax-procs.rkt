@@ -1,12 +1,12 @@
 ;;
 ;; FILE:     syntax-procs.rkt
 ;; AUTHOR:   Tanner Raine
-;; DATE:     2024/04/23
+;; DATE:     2024/04/25
 ;; COMMENT:  Uses Huey to demonstrate I can code :-)
 ;;           
 ;;
-;; MODIFIED: 2024/04/23 by Tanner Raine
-;; CHANGE:   Modified color/in?
+;; MODIFIED: 2024/04/26 by Tanner Raine
+;; CHANGE:   Modified do? and color/in?
 ;;
 
 #lang racket
@@ -81,13 +81,14 @@
 
 (define color?
   (lambda (x)
-    (or (rgb? x)
+    (or (rgb?        x)
         (unary-exp?  x)
         (2color-exp? x)
         (1color-exp? x)
         (color/in?   x)
         (varref?     x)
-        (color/in?   x))))
+        (color/in?   x)
+        (do?         x))))
 
 ;; ------------------------------------------------------------------------
 ;; RGB values -- the base values of Huey
@@ -106,11 +107,11 @@
 (define rgb
   (lambda args
     (cond ((not ((list-of? 3) args))
-             (error 'rgb "requires list of size 3 ~a" args))
+           (error 'rgb "requires list of size 3 ~a" args))
           ((not ((list-of? number?) args))
-             (error 'rgb "requires list of number? ~a" args))
+           (error 'rgb "requires list of number? ~a" args))
           (else
-             (cons 'rgb (map coerce-byte args))))))
+           (cons 'rgb (map coerce-byte args))))))
 
 (define r second)
 (define g third)
@@ -195,15 +196,15 @@
   (lambda (exp)
     (cond
       
-    [(and
-     (list? exp)
-     ((list-of? 6) exp)
-     (varref? (color/in-var exp))
-     (color? (color/in-color1 exp))
-     (color? (color/in-color2 exp))
-     (equal? (color/in-in exp) 'in)
-     (equal? (color/in-= exp) '=))]
-    [else #f])))
+      [(and
+        (list? exp)
+        (<= 6 (length exp)) ;;changed for 'do expression, since do can have 0 or .inf applications
+        (varref? (color/in-var exp))
+        (color? (color/in-color1 exp))
+        (color? (color/in-color2 exp))
+        (equal? (color/in-in exp) 'in)
+        (equal? (color/in-= exp) '=))]
+      [else #f])))
 
 (define color/in-exp ;;constructor
   (lambda (var color1 color2)
@@ -233,3 +234,82 @@
             #t
             #f)
         #f)))
+
+
+;; ------------------------------------------------------------------------
+;; Do expressions (Scooby-Doo :) )
+;; ------------------------------------------------------------------------
+
+;; <color> ::= ( do <assignment>* <color> )
+
+;; (eval-exp '(color c = (rgb 0 255 0) in
+;;                 (color d = (rgb 0 0 255) in
+;;                   (do (c <= (c mix d))
+;;                       (d <= (c mix d))
+;;                       ((c mix d) shift 5)))))
+
+(define do-do ;;haha do-do
+  (lambda (exp)
+    (first exp)))
+
+(define do-assgn
+  (lambda (exp)
+    (rest (take exp (- (length exp) 1) )))) ;;drops first and last item, pulls middle
+
+(define do-color
+  (lambda (exp)
+    (last exp)))
+
+(define do-exp-assign
+  (lambda (assignment color)
+    (append (cons 'do assignment) (list color))))
+
+(define do-exp
+  (lambda (color)
+    (list 'do color)))
+
+(define do?
+  (lambda (exp)
+    (cond
+      [(and
+        (list? exp)
+        (equal? (do-do exp) 'do)
+        (color? (do-color exp)))
+       (if (>= (length exp) 3)
+           (andmap assignment? (do-assgn exp)) ;;1 or more assignment statements, returns #t or #f
+           #t)] ;;no assignment statement
+
+      [else #f])))
+
+;; ------------------------------------------------------------------------
+;; Assignment expressions
+;; ------------------------------------------------------------------------
+
+;;<assignment> ::= ( <varref> <= <color> )
+
+(define assgn-varref
+  (lambda (exp)
+    (first exp)))
+
+(define assgn-symbol
+  (lambda (exp)
+    (second exp)))
+
+(define assgn-color
+  (lambda (exp)
+    (third exp)))
+
+(define assgn-exp ;;constructor
+  (lambda (varref color)
+    (list varref '<= color)))
+
+(define assignment?
+  (lambda (exp)
+    (cond
+      [(and
+        (list? exp)
+        (equal? (length exp) 3)
+        (varref? (assgn-varref exp))
+        (equal?  (assgn-symbol exp) '<=)
+        (color?  (assgn-color exp)))]
+      [else #f])))

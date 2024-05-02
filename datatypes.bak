@@ -1,3 +1,14 @@
+;;
+;; FILE:     datatypes.rkt
+;; AUTHOR:   Tanner Raine
+;; DATE:     2024/04/23
+;; COMMENT:  Datatypes used with interpreter.rkt, for things such as binding list
+;;           
+;;
+;; MODIFIED: 2024/04/23 by Tanner Raine
+;; CHANGE:   Fixed look-up calls
+;;
+
 #lang racket
 
 (require "utilities.rkt")
@@ -5,27 +16,6 @@
 
 
 ;----------------BINDINGS---------------------------------------
-;;Problem 1
-
-;; (define make-bindings list)
-;; 
-;; (define bind
-;;   (lambda (name val los)
-;;     (if (null? los)
-;;         (list (cons name val))
-;;         (list (cons name val) (rest los)))))
-;; 
-;; (define var-exists?
-;;   (lambda (name los) ;los = list of stuff
-;;     (if (assoc name los)
-;;         #t
-;;         #f)))
-;; 
-;; (define look-up
-;;   (lambda (name los)
-;;     (cond
-;;       [(var-exists? name los) (cdr (assoc name los))]
-;;       [else (error "environment: undefined variable --" name)])))
 
 (define (make-bindings)
   '())
@@ -40,5 +30,32 @@
         (cdr binding)
         (error "environment: undefined variable --" name))))
 
-(define (var-exists? name env)
-  (not (null? (assoc name env))))
+(define var-exists?
+  (lambda (name env)
+    (cond
+      [(null? name) #f]
+      [(assoc name env) #t]
+      [else #f])))
+
+
+
+;----------------CELL ADT---------------------------------------
+
+
+(define (cell initial-value)
+  (let ((value initial-value))
+    (cons
+     (lambda ()
+       value)
+     (lambda (new-value)
+       (set! value new-value)))))
+
+(define cell-value
+  (lambda (cell)
+    (car cell)))
+
+  (define cell-set!
+    (lambda (cell new-value)
+      (cdr cell) new-value))
+
+  

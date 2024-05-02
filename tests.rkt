@@ -7,7 +7,7 @@
 ;;
 ;; MODIFIED: 2024/04/23 by Tanner Raine
 ;; CHANGE:   Added test cases for color/in?
-;;
+;; ALL TESTS FROM LINE 22 THROUGH 103 ARE WORK OF EUGENE WALLINGFORD
 
 #lang racket
 
@@ -118,6 +118,33 @@
                   (darker pink))))
 '(rgb 127 63 63))
 
+
+
+;; ------------------------------------------------------------------------
+
+
+;; ------------------------------------------------------------------------
+;; Do ;;Scooby-Doo :-)
+;; ------------------------------------------------------------------------
+
+(check-equal? (eval-exp 'white)
+'(rgb 255 255 255))
+
+(check-equal? (eval-exp '(do (rgb 255 0 0)))
+'(rgb 255 0 0))
+
+(check-equal? (eval-exp '(color c = (rgb 0 255 0) in
+                (do (c <= (c mix (rgb 0 0 255)))
+                    (c <= (invert c))
+                    (darker (c shift 5)))))
+'(rgb 127 66 66))
+
+(check-equal? (eval-exp '(color c = (rgb 0 255 0) in
+                (color d = (rgb 0 0 255) in
+                  (do (c <= (c mix d))
+                      (d <= (c mix d))
+                      ((c mix d) shift 5)))))
+'(rgb 5 99 163))
 
 
 ;; ------------------------------------------------------------------------
